@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout - FadeBlack (Sandbox)</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.paypal.com/sdk/js?AR8Q1aEOFXXPDm_4Jma2l07HdSBK0zpqc8OfzvQUophvo86EfwxFZcLvrJTOD5pfM5fDqd8ZkG9Tsm4z"></script>
+</head>
+<body>
+  <header>
+    <h1>Checkout (Sandbox Mode)</h1>
+  </header>
+
+  <main>
+    <section id="cart-summary">
+      <h2>Your Cart</h2>
+      <ul id="cart-items"></ul>
+      <p>Total: R <span id="cart-total">0</span></p>
+    </section>
+
+    <section id="customer-info">
+      <h2>Your Info</h2>
+      <form id="customer-form">
+        <input type="text" name="name" placeholder="Full Name" required />
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="text" name="address" placeholder="Shipping Address" required />
+        <button type="submit">Continue to Payment</button>
+      </form>
+    </section>
+
+    <section id="payment" style="display:none;">
+      <h2>Pay with PayPal (Sandbox)</h2>
+      <div id="paypal-button-container"></div>
+    </section>
+  </main>
+
+  <script>
+    const cart = JSON.parse(localStorage.getItem("cart") || "[]");
+    const cartItems = document.getElementById("cart-items");
+    const cartTotal = document.getElementById("cart-total");
+    let total = 0;
+
+    async function loadCartDetails() {
+      for (let id of cart) {
+        const res = await fetch(`/.netlify/functions/printful-product?id=${id}`);
+        const { result } = await res.json();
+        const li = document.createElement("li");
+        li.textContent = `${result.name} - R ${result.variants[0].retail_price}`;
+        cartItems.appendChild(li);
+        total += parseFloat(result.variants[0].retail_price);
+      }
+      cartTotal.textContent = total.toFixed(2);
+    }
+
+    loadCartDetails();
+
+    const form = document.getElementById("customer-form");
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      form.style.display = "none";
+      document.getElementById("payment").style.display = "block";
+
+      const customer = Object.fromEntries(new FormData(form));
+      const onSuccess = async () => {
+        const order = {
+          recipient: {
+            name: customer.name,
+            email: customer.email,
+            address1: customer.address,
+            country_code: "ZA",
+          },
+          items: cart.map(id => ({
+            variant_id: id,
+            quantity: 1,
+          }))
+        };
+
+        const res = await fetch("/.netlify/functions/printful-order", {
+          method: "POST",
+          body: JSON.stringify(order),
+        });
+        const result = await res.json();
+
+        await fetch("/.netlify/functions/send-email", {
+          method: "POST",
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: customer.email,
+            subject: "Thanks for your order at FadeBlack!",
+            text: `Hi ${customer.name}, your order has been placed. We'll keep you updated on shipping!`,
+          })
+        });
+
+        alert("Order placed and email sent!");
+        localStorage.removeItem("cart");
+        window.location.href = "/thank-you.html";
+      };
+
+      renderPayPalButton(total.toFixed(2), onSuccess);
+    });
+  </script>
+  <script>
+    function renderPayPalButton(amount, onSuccess) {
+      paypal.Buttons({
+        createOrder: (data, actions) => {
+          return actions.order.create({
+            purchase_units: [{
+              amount: { value: amount }
+            }]
+          });
+        },
+        onApprove: (data, actions) => {
+          return actions.order.capture().then(onSuccess);
+        }
+      }).render('#paypal-button-container');
+    }
+    import { logOrder } from './logOrder.js';
+
+    await logOrder({
+      userId: user.uid,
+      name: customer.name,
+      email: customer.email,
+      items: [
+        { name: 'FadeBlack Hoodie', quantity: 1, price: 499 },
+        { name: 'Custom Cap', quantity: 1, price: 199 },
+      ]
+    });
+     </script>
+</body>
+</html>

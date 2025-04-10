@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - FadeBlack</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <h1>Admin Dashboard</h1>
+  <div id="dashboard-content" style="display: none;">
+    <p>Welcome, Admin!</p>
+    <button id="export-csv">Export Orders as CSV</button>
+    <div>
+      <h3>Promote User to Admin</h3>
+      <input type="email" id="user-email" placeholder="Enter user email" />
+      <button id="promote-btn">Promote</button>
+    </div>
+  </div>
+  <p id="dashboard-status">Verifying admin access...</p>
+
+  <script type="module">
+    import { auth, db } from '/js/firebase.js';
+    import { onAuthStateChanged } from 'firebase/auth';
+    import { collection, getDocs, updateDoc, query, where, doc } from 'firebase/firestore';
+
+    const dashboard = document.getElementById('dashboard-content');
+    const status = document.getElementById('dashboard-status');
+    const promoteBtn = document.getElementById('promote-btn');
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDocs(query(collection(db, 'users'), where('email', '==', user.email)));
+        const adminData = userSnap.docs[0]?.data();
+
+        if (adminData?.admin) {
+          dashboard.style.display = 'block';
+          status.style.display = 'none';
+        } else {
+          status.textContent = '❌ Access denied. Admins only.';
+        }
+      } else {
+        status.textContent = '❌ You must be logged in to view this page.';
+      }
+    });
+
+    promoteBtn.addEventListener('click', async () => {
+      const email = document.getElementById('user-email').value.trim();
+      if (!email) return alert('Enter an email address.');
+
+      const q = query(collection(db, 'users'), where('email', '==', email));
+      const snap = await getDocs(q);
+      if (snap.empty) return alert('User not found.');
+
+      const userDoc = snap.docs[0];
+      await updateDoc(doc(db, 'users', userDoc.id), { admin: true });
+      alert(`✅ ${email} is now an admin!`);
+    });
+
+    document.getElementById('export-csv').addEventListener('click', async () => {
+      const orderRef = collection(db, 'orders');
+      const snap = await getDocs(orderRef);
+      let csv = 'OrderID,Customer,Email,Product,Qty\n';
+      snap.forEach(doc => {
+        const o = doc.data();
+        csv += `${doc.id},${o.customer_name},${o.customer_email},${o.product_name},${o.quantity}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'orders.csv';
+      a.click();
+    });
+  </script>
+</body>
+</html>

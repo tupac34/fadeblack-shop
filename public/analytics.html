@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Analytics - FadeBlack</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <h1>📊 Store Analytics</h1>
+  <div id="stats">
+    <p><strong>Total Orders:</strong> <span id="total-orders">0</span></p>
+    <p><strong>Total Revenue:</strong> R <span id="total-revenue">0.00</span></p>
+    <p><strong>Top Products:</strong></p>
+    <ul id="top-products"></ul>
+  </div>
+
+  <script type="module">
+    import { db } from '/js/firebase.js';
+    import { collection, getDocs } from 'firebase/firestore';
+
+    const orderRef = collection(db, 'orders');
+    const orders = await getDocs(orderRef);
+    let totalRevenue = 0;
+    const productMap = {};
+
+    orders.forEach(doc => {
+      const data = doc.data();
+      totalRevenue += parseFloat(data.price || 0);
+      const name = data.product_name;
+      productMap[name] = (productMap[name] || 0) + (data.quantity || 1);
+    });
+
+    document.getElementById('total-orders').textContent = orders.size;
+    document.getElementById('total-revenue').textContent = totalRevenue.toFixed(2);
+
+    const topList = document.getElementById('top-products');
+    Object.entries(productMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .forEach(([product, qty]) => {
+        const li = document.createElement('li');
+        li.textContent = `${product} — ${qty} sold`;
+        topList.appendChild(li);
+      });
+  </script>
+</body>
+</html>

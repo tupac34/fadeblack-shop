@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Test Email Sender</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f4f4f4; }
+    form { background: #fff; padding: 1.5rem; border-radius: 8px; max-width: 500px; margin: auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, textarea { width: 100%; margin-bottom: 1rem; padding: 0.5rem; font-size: 1rem; }
+    button { padding: 0.5rem 1rem; background: #222; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #444; }
+  </style>
+</head>
+<body>
+  <form id="emailForm">
+    <h2>📧 Send a Test Email</h2>
+    <input type="text" id="name" placeholder="Your Name" required />
+    <input type="email" id="email" placeholder="Your Email" required />
+    <textarea id="message" placeholder="Your Message" required></textarea>
+    <button type="submit">Send Email</button>
+    <p id="status"></p>
+  </form>
+
+  <script>
+    const form = document.getElementById('emailForm');
+    const status = document.getElementById('status');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      status.textContent = 'Sending...';
+
+      const res = await fetch('/.netlify/functions/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name.value,
+          email: form.email.value,
+          message: form.message.value,
+        }),
+      });
+
+      if (res.ok) {
+        status.textContent = '✅ Email sent!';
+        form.reset();
+      } else {
+        status.textContent = '❌ Error sending email.';
+      }
+    });
+  </script>
+</body>
+</html>

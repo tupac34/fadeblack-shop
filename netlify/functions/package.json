@@ -1,0 +1,10 @@
+{
+    "name": "fadeblack-store",
+    "version": "1.0.0",
+    "main": "index.js",
+    "license": "MIT",
+    "dependencies": {
+      "nodemailer": "^6.9.0"
+    }
+  }
+  
