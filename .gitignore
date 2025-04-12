@@ -1,6 +1,21 @@
-.env
-node_modules
-.netlify
-build
-dist
+# Node modules
+node_modules/
+
+# Logs
 *.log
+
+# Netlify build artifacts
+.netlify/
+
+# Firebase config (if local)
+.firebase/
+
+# Environment variables
+.env
+.env.*
+
+# Mac system files
+.DS_Store
+
+# VSCode settings
+.vscode/
