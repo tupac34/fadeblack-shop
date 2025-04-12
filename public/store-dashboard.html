@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Dashboard</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <h1>Store Dashboard</h1>
+  <p id="access-msg">Checking access...</p>
+
+  <div id="dashboard-ui" style="display:none;">
+    <h2>Customize Your Store</h2>
+    <label>Upload Logo:</label>
+    <input type="file" id="logo-upload" />
+    <label>Choose Theme Color:</label>
+    <input type="color" id="color-picker" value="#111111" />
+    <button onclick="saveBranding()">Save Branding</button>
+
+    <h2>Printful Products</h2>
+    <div id="product-list"></div>
+  </div>
+
+  <script type="module">
+    import { auth, db, storage } from '/js/firebase.js';
+    import { onAuthStateChanged } from 'firebase/auth';
+    import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
+    import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+    const brand = window.location.pathname.split("/dashboard/")[1];
+    const msg = document.getElementById('access-msg');
+    const ui = document.getElementById('dashboard-ui');
+
+    let storeRefId = null;
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const q = query(collection(db, "stores"), where("name", "==", brand));
+        const snap = await getDocs(q);
+        if (!snap.empty && snap.docs[0].data().email === user.email) {
+          msg.style.display = "none";
+          ui.style.display = "block";
+          storeRefId = snap.docs[0].id;
+          loadPrintfulProducts();
+        } else {
+          msg.textContent = "❌ Access denied.";
+        }
+      } else {
+        msg.textContent = "❌ Please log in first.";
+      }
+    });
+
+    async function saveBranding() {
+      const file = document.getElementById("logo-upload").files[0];
+      const color = document.getElementById("color-picker").value;
+      if (!file || !storeRefId) return;
+      const storageRef = ref(storage, `logos/${brand}.png`);
+      await uploadBytes(storageRef, file);
+      const logoUrl = await getDownloadURL(storageRef);
+      await updateDoc(doc(db, "stores", storeRefId), {
+        logo: logoUrl,
+        color
+      });
+      alert("✅ Branding updated!");
+    }
+
+    function loadPrintfulProducts() {
+      fetch("/.netlify/functions/get-printful-products", {
+        method: "POST",
+        body: JSON.stringify({ brand })
+      })
+        .then(res => res.json())
+        .then(products => {
+          const container = document.getElementById("product-list");
+          container.innerHTML = products.map(p => `
+            <div style="border:1px solid #333; margin:10px; padding:10px;">
+              <h3>${p.name}</h3>
+              <img src="${p.thumbnail_url}" style="max-width:120px;">
+            </div>
+          `).join('');
+        });
+    }
+  </script>
+</body>
+</html>

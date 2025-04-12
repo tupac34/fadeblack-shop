@@ -1,0 +1,1 @@
+// returns site branding & content JSON

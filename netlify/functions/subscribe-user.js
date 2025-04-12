@@ -1,0 +1,1 @@
+// Stripe subscription placeholder Netlify Function

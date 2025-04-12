@@ -1,0 +1,1 @@
+// Share mockup Netlify Function placeholder

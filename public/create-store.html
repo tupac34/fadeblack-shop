@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Your Store - FadeBlack Platform</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <h1>Create Your Store</h1>
+  <form id="create-store-form">
+    <label for="store-name">Store Name:</label>
+    <input type="text" id="store-name" required placeholder="e.g., UrbanHype" />
+
+    <label for="email">Your Email:</label>
+    <input type="email" id="email" required />
+
+    <label for="plan">Choose a Plan:</label>
+    <select id="plan">
+      <option value="free">Free - Up to 5 Products</option>
+      <option value="pro">Pro - Unlimited Products + Features</option>
+    </select>
+
+    <label for="printful">Printful API Key:</label>
+    <input type="text" id="printful" required placeholder="Paste your Printful API key here" />
+
+    <button type="submit">🚀 Launch My Store</button>
+  </form>
+  <p id="status-msg"></p>
+
+  <script type="module">
+    import { db } from '/js/firebase.js';
+    import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
+    const form = document.getElementById('create-store-form');
+    const statusMsg = document.getElementById('status-msg');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const storeName = document.getElementById('store-name').value.trim().toLowerCase();
+      const email = document.getElementById('email').value.trim();
+      const plan = document.getElementById('plan').value;
+      const printful = document.getElementById('printful').value.trim();
+
+      try {
+        await addDoc(collection(db, 'stores'), {
+          name: storeName,
+          email,
+          plan,
+          printful_api: printful,
+          createdAt: serverTimestamp()
+        });
+
+        statusMsg.textContent = `✅ Store "${storeName}" created! Visit /store/${storeName} after approval.`;
+      } catch (err) {
+        statusMsg.textContent = '❌ Error creating store: ' + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

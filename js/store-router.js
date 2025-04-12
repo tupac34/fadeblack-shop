@@ -1,0 +1,1 @@
+// JS router for /site/:name
